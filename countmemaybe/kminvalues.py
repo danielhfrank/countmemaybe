@@ -15,7 +15,6 @@ from base_dve import BaseDVE
 
 import mmh3
 from blist import sortedlist, sortedset
-import math
 
 from operator import attrgetter
 from itertools import (chain, ifilterfalse, imap)
@@ -86,7 +85,7 @@ class KMinValues(BaseDVE):
     def cardinality_intersection(self, *others):
         n, X = self._direct_sum(*others)
         cardX = self._cardhelp(max(X), len(X))
-        return n / (1.0 * len(k)) * cardX
+        return n / (1.0 * len(self.k)) * cardX
 
     def cardinality_union(self, *others):
         _, X = self._direct_sum(*others)
@@ -110,25 +109,11 @@ class KMinValues(BaseDVE):
         return nt
 
     def relative_error(self, confidence=0.98, D=0):
-        p = 0
-        if D:
-            try:
-                from scipy import (special, optimize)
-            except ImportError:
-                raise Exception("Scipy needed for relative error bounds")
-            k = self.k
-
-            u = lambda D, k, e : (k - 1.0) / ((1.0 - e) * D)
-            l = lambda D, k, e : (k - 1.0) / ((1.0 + e) * D)
-            objective = lambda e, D, k, confidence : special.betainc(k, D-k+1, u(D, k, e)) - special.betainc(k, D-k+1, l(D, k, e)) - confidence
-
-            try:
-                p = optimize.newton(objective, x0=0.05, args=(D, k, confidence))
-            except RuntimeError:
-                pass
-        else:
-            p = math.sqrt(2.0 / (math.pi * (self.k - 2)))
-        return p
+        try:
+            from kmv_errors import relative_error as rel_err
+        except ImportError:
+            raise Exception("Scipy needed for relative error bounds")
+        return rel_err(self.k, confidence, D)
 
 
 def test_constructor():
